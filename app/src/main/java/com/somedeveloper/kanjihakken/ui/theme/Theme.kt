@@ -37,6 +37,7 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+@Suppress("DEPRECATION")
 @Composable
 fun KanjiHakkenTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

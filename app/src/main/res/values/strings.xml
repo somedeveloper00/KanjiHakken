@@ -14,4 +14,6 @@
     <string name="occurrences">%1$s occurrences</string>
     <string name="copy">copy</string>
     <string name="copied_to_clipboard">"%1$s" copied to clipboard</string>
+    <string name="tokenizing_texts">tokenizing texts</string>
+    <string name="creating_kanji_list">creating kanji list</string>
 </resources>

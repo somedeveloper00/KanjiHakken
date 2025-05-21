@@ -35,7 +35,6 @@ fun MangaDetails(
     images: List<Bitmap>,
     texts: List<String?>
 ) {
-    var scrollState = rememberScrollState()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -56,7 +55,6 @@ private fun PageResult(
     text: String?
 ) {
     var showText by remember { mutableStateOf(false) }
-    var textScrollState = rememberScrollState()
 
     Card(
         modifier = Modifier

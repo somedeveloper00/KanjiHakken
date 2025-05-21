@@ -47,12 +47,12 @@ import com.somedeveloper.kanjihakken.Utils.copyToClipboardSafe
 import com.somedeveloper.kanjihakken.ui.theme.KanjiHakkenTheme
 
 @Composable
-fun KankiList(
+fun KanjiList(
     modifier: Modifier = Modifier,
-    entries: List<KanjiEntry>,
+    entries: Map<Char, Map<String, List<Int>>>,
     onExampleClicked: (String, Int) -> Unit
 ) {
-    var expandedIndex by remember { mutableStateOf<Int?>(null) }
+    var expandedKanji by remember { mutableStateOf<Char?>(null) }
     val scrollState = rememberScrollState()
 
     Column(
@@ -62,12 +62,13 @@ fun KankiList(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        entries.forEachIndexed { index, entry ->
+        entries.entries.forEach { (kanji, examples) ->
             KanjiEntryView(
-                LocalContext.current,
-                kanjiEntry = entry,
-                isExpanded = expandedIndex != null && index == expandedIndex!!,
-                onExpandChanged = { expandedIndex = if (it) index else null },
+                context = LocalContext.current,
+                kanji = kanji,
+                examples = examples,
+                isExpanded = expandedKanji != null && expandedKanji!! == kanji,
+                onExpandChanged = { expandedKanji = if (it) kanji else null },
                 onExampleClicked = onExampleClicked
             )
         }
@@ -77,7 +78,8 @@ fun KankiList(
 @Composable
 private fun KanjiEntryView(
     context: Context,
-    kanjiEntry: KanjiEntry,
+    kanji: Char,
+    examples: Map<String, List<Int>>,
     isExpanded: Boolean,
     onExpandChanged: (Boolean) -> Unit,
     onExampleClicked: (String, Int) -> Unit
@@ -98,7 +100,7 @@ private fun KanjiEntryView(
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = kanjiEntry.kanji,
+                    text = kanji.toString(),
                     style = MaterialTheme.typography.displayLarge,
                     fontFamily = FontFamily.Serif
                 )
@@ -107,17 +109,18 @@ private fun KanjiEntryView(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = stringResource(R.string.occurrences, kanjiEntry.examples.size),
+                        text = stringResource(R.string.occurrences, examples.size),
                         textAlign = TextAlign.Right,
                         fontFamily = FontFamily.Serif
                     )
                     Button(
                         modifier = Modifier.padding(start = 10.dp),
                         onClick = {
-                            copyToClipboardSafe(kanjiEntry.kanji, context)
+                            val kanjiStr = kanji.toString()
+                            copyToClipboardSafe(kanjiStr, context)
                             Toast.makeText(
                                 context,
-                                context.getString(R.string.copied_to_clipboard, kanjiEntry.kanji),
+                                context.getString(R.string.copied_to_clipboard, kanjiStr),
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }
@@ -131,10 +134,12 @@ private fun KanjiEntryView(
                 }
             }
             if (isExpanded) {
-                kanjiEntry.examples.forEachIndexed { index, example ->
+                examples.entries.withIndex().forEach { (index, entry) ->
+                    var word = entry.key
+                    var references = entry.value
                     val shape = when (index) {
                         0 -> RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
-                        kanjiEntry.examples.lastIndex -> RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)
+                        examples.size - 1 -> RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)
                         else -> RoundedCornerShape(0.dp)
                     }
                     Row(
@@ -147,10 +152,10 @@ private fun KanjiEntryView(
                     ) {
                         Button(
                             onClick = {
-                                copyToClipboardSafe(example.first, context)
+                                copyToClipboardSafe(word, context)
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.copied_to_clipboard, example.first),
+                                    context.getString(R.string.copied_to_clipboard, word),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             },
@@ -165,7 +170,7 @@ private fun KanjiEntryView(
                             )
                         }
                         Text(
-                            text = example.first,
+                            text = word,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimary,
                             textAlign = TextAlign.Center,
@@ -176,9 +181,9 @@ private fun KanjiEntryView(
                             horizontalArrangement = Arrangement.End,
                             itemVerticalAlignment = Alignment.Top,
                         ) {
-                            example.second.forEach({
+                            references.forEach({
                                 Button(
-                                    onClick = { onExampleClicked(example.first, it) }
+                                    onClick = { onExampleClicked(word, it) }
                                 ) {
                                     Text(
                                         text = it.toString()
@@ -194,34 +199,38 @@ private fun KanjiEntryView(
     }
 }
 
-class KanjiEntry(kanji: String, examples: List<Pair<String, List<Int>>>) {
-    var kanji: String = kanji
-    var examples: List<Pair<String, List<Int>>> = examples
-}
-
 @Preview(showBackground = true, showSystemUi = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun PreviewKanjiListDark() {
     KanjiHakkenTheme {
         Box(modifier = Modifier.fillMaxSize()) {
-            KankiList(
+            KanjiList(
                 modifier = Modifier.padding(20.dp),
-                entries = listOf(
-                    KanjiEntry("学", listOf("学校" to listOf(0, 1), "学ぶ" to listOf(2, 3))),
-                    KanjiEntry("生", listOf("学生" to listOf(0, 1), "生まれる" to listOf(2, 3))),
-                    KanjiEntry("日", listOf("日本" to listOf(0, 1), "日曜日" to listOf(2, 3))),
-                    KanjiEntry("月", listOf("月曜日" to listOf(0, 1), "月" to listOf(2, 3))),
-                    KanjiEntry("火", listOf("火曜日" to listOf(0, 1), "火" to listOf(2, 3))),
-                    KanjiEntry("水", listOf("水曜日" to listOf(0, 1), "水" to listOf(2, 3))),
-                    KanjiEntry("木", listOf("木曜日" to listOf(0, 1), "木" to listOf(2, 3))),
-                    KanjiEntry("金", listOf("金曜日" to listOf(0, 1), "金" to listOf(2, 3))),
-                    KanjiEntry("土", listOf("土曜日" to listOf(0, 1), "土" to listOf(2, 3))),
-                    KanjiEntry("山", listOf("山" to listOf(0, 1), "山登り" to listOf(2, 3))),
-                    KanjiEntry("川", listOf("川" to listOf(0, 1), "川遊び" to listOf(2, 3))),
-                    KanjiEntry("田", listOf("田" to listOf(0, 1), "田んぼ" to listOf(2, 3))),
-                    KanjiEntry("空", listOf("空" to listOf(0, 1), "空港" to listOf(2, 3))),
-                    KanjiEntry("海", listOf("海" to listOf(0, 1), "海岸" to listOf(2, 3))),
-                    KanjiEntry("風", listOf("風" to listOf(0, 1), "風邪" to listOf(2, 3))),
+                entries = mapOf(
+                    '金' to mapOf(
+                        "金曜日" to listOf(1, 2, 3),
+                        "お金" to listOf(4, 5)
+                    ),
+                    '月' to mapOf(
+                        "月曜日" to listOf(6, 7),
+                        "お月見" to listOf(8)
+                    ),
+                    '火' to mapOf(
+                        "火曜日" to listOf(9, 10),
+                        "火山" to listOf(11)
+                    ),
+                    '水' to mapOf(
+                        "水曜日" to listOf(12, 13),
+                        "水族館" to listOf(14)
+                    ),
+                    '木' to mapOf(
+                        "木曜日" to listOf(15, 16),
+                        "木材" to listOf(17)
+                    ),
+                    '得' to mapOf(
+                        "得点" to listOf(15, 16),
+                        "得意" to listOf(17)
+                    ),
                 ),
                 onExampleClicked = { kanji, index -> println("Clicked on $kanji at index $index") }
             )

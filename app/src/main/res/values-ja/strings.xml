@@ -9,9 +9,11 @@
     <string name="select_a_manga">漫画を選択</string>
     <string name="cancel">キャンセル</string>
     <string name="back">戻る</string>
-    <string name="extracting_images">画像を抽出しています</string>
-    <string name="counting_total_images">画像の総数を数えています</string>
-    <string name="extracting_text_from_images">画像からテキストを抽出しています</string>
+    <string name="counting_total_images">画像の総数を数える中</string>
+    <string name="extracting_images">画像を抽出中</string>
+    <string name="extracting_text_from_images">画像からテキストを抽出中</string>
+    <string name="tokenizing_texts">テキストのトークナイズ中</string>
+    <string name="creating_kanji_list">漢字リストを作成中</string>
     <string name="occurrences">%1$s 件の出現</string>
     <string name="copy">コピー</string>
     <string name="copied_to_clipboard">「%1$s」 をクリップボードにコピーしました</string>

@@ -3,7 +3,6 @@ package com.somedeveloper.kanjihakken
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.text.format.Formatter
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -25,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,11 +38,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import com.atilika.kuromoji.ipadic.Tokenizer
+import com.somedeveloper.kanjihakken.Utils.contributeToKanjiEntryList
 import com.somedeveloper.kanjihakken.Utils.extractImagesFromCbzUriJob
 import com.somedeveloper.kanjihakken.Utils.extractTextFromBitmap
 import com.somedeveloper.kanjihakken.Utils.getAppMemoryUsage
-import com.somedeveloper.kanjihakken.panes.KanjiEntry
-import com.somedeveloper.kanjihakken.panes.KankiList
+import com.somedeveloper.kanjihakken.panes.KanjiList
 import com.somedeveloper.kanjihakken.panes.LoadingDialog
 import com.somedeveloper.kanjihakken.panes.MangaDetails
 import com.somedeveloper.kanjihakken.panes.MangaSelector
@@ -62,9 +63,7 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    MainPage(
-                        onKillRequested = { finish() }
-                    )
+                    MainPage(onKillRequested = { finish() })
                 }
             }
         }
@@ -78,13 +77,14 @@ fun MainPage(
     var context = LocalContext.current
     var scope = rememberCoroutineScope()
     var selectedSourceType by remember { mutableStateOf<SourceType?>(null) }
-    var tab by remember { mutableStateOf(Tab.Main) }
     var images by remember { mutableStateOf<List<Bitmap>?>(null) }
     var texts by remember { mutableStateOf<List<String?>?>(null) }
     var loadingJob by remember { mutableStateOf<Job?>(null) }
-    var loadingPercentage by remember { mutableStateOf(0f) }
+    var loadingPercentage by remember { mutableFloatStateOf(0f) }
     var loadingMessage by remember { mutableStateOf("") }
     var pagerState = rememberPagerState(pageCount = { 2 })
+    var loadingKanjiList: MutableMap<Char, MutableMap<String, MutableList<Int>>> = mutableMapOf()
+    var finalKanjiList: Map<Char, Map<String, List<Int>>>? = null
 
     BackHandler {
         if (selectedSourceType != null)
@@ -124,7 +124,6 @@ fun MainPage(
                             onImageExtracted = { bitmap, totalCount ->
                                 images = images?.toMutableList()?.also { it.add(bitmap) } ?: listOf(bitmap)
                                 loadingPercentage = lerp(0.1f, 0.5f, images!!.size.toFloat() / totalCount.toFloat())
-                                val size = images!!.size
                                 loadingMessage = context.getString(R.string.extracting_images)
                             },
                             onFinished = {
@@ -133,14 +132,22 @@ fun MainPage(
                                     return@extractImagesFromCbzUriJob
                                 }
                                 var totalExtractedTexts = 0
+                                loadingMessage = context.getString(R.string.extracting_text_from_images)
+                                loadingPercentage = 0.5f
+                                texts = List<String?>(images!!.size) { null }
                                 loadingJob = CoroutineScope(Dispatchers.IO).launch {
-                                    loadingMessage = context.getString(R.string.extracting_text_from_images)
-                                    loadingPercentage = 0.5f
-                                    texts = List<String?>(images!!.size) { null }
                                     images!!.forEachIndexed { index, bitmap ->
                                         extractTextFromBitmap(
                                             bitmap = bitmap,
                                             onSuccess = { str ->
+                                                // contribute to loading kanji list
+                                                loadingKanjiList = contributeToKanjiEntryList(
+                                                    tokenizer = tokenizer,
+                                                    kanjiMap = loadingKanjiList,
+                                                    newText = str,
+                                                    valueToInsert = index
+                                                )
+                                                // update progress bar
                                                 withContext(Dispatchers.Main) {
                                                     texts = texts!!.toMutableList().also { it[index] = str }
                                                     totalExtractedTexts++
@@ -148,11 +155,19 @@ fun MainPage(
                                                     if (totalExtractedTexts == images!!.size) {
                                                         loadingJob = null
                                                         loadingPercentage = 1f
+                                                        withContext(Dispatchers.Main) {
+                                                            finalKanjiList = updateFinalizedKanjiList(loadingKanjiList)
+                                                        }
                                                     }
                                                 }
                                             },
                                             onFail = {
-                                                Log.d("Kanji", "MainPage: could not parse image $index")
+                                                totalExtractedTexts++
+                                                loadingPercentage = lerp(0.5f, 1f, totalExtractedTexts / images!!.size.toFloat())
+                                                if (totalExtractedTexts == images!!.size) {
+                                                    loadingJob = null
+                                                    loadingPercentage = 1f
+                                                }
                                             }
                                         )
                                     }
@@ -171,37 +186,32 @@ fun MainPage(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (images != null)
+            BackButton(
+                modifier = Modifier.align(Alignment.Start),
+                onClick = {
+                    loadingJob?.cancel()
+                    images = null
+                    texts = null
+                })
         if (loadingJob != null) {
             LoadingDialog(
                 progress = { loadingPercentage.toFloat() },
                 message = loadingMessage,
-                onCancel = { loadingJob?.cancel() },
+                onCancel = {
+                    loadingJob?.cancel()
+                    loadingJob = null
+                },
             )
         }
 
-        if (images != null && texts != null && images!!.size == texts!!.size) {
+        if (finalKanjiList != null) {
             Box(Modifier.fillMaxSize()) {
                 HorizontalPager(pagerState) {
                     if (it == 0) {
-                        KankiList(
+                        KanjiList(
                             modifier = Modifier.padding(10.dp),
-                            entries = listOf(
-                                KanjiEntry("学", listOf("学校" to listOf(0, 1), "学ぶ" to listOf(2, 3))),
-                                KanjiEntry("生", listOf("学生" to listOf(0, 1), "生まれる" to listOf(2, 3))),
-                                KanjiEntry("日", listOf("日本" to listOf(0, 1), "日曜日" to listOf(2, 3))),
-                                KanjiEntry("月", listOf("月曜日" to listOf(0, 1), "月" to listOf(2, 3))),
-                                KanjiEntry("火", listOf("火曜日" to listOf(0, 1), "火" to listOf(2, 3))),
-                                KanjiEntry("水", listOf("水曜日" to listOf(0, 1), "水" to listOf(2, 3))),
-                                KanjiEntry("木", listOf("木曜日" to listOf(0, 1), "木" to listOf(2, 3))),
-                                KanjiEntry("金", listOf("金曜日" to listOf(0, 1), "金" to listOf(2, 3))),
-                                KanjiEntry("土", listOf("土曜日" to listOf(0, 1), "土" to listOf(2, 3))),
-                                KanjiEntry("山", listOf("山" to listOf(0, 1), "山登り" to listOf(2, 3))),
-                                KanjiEntry("川", listOf("川" to listOf(0, 1), "川遊び" to listOf(2, 3))),
-                                KanjiEntry("田", listOf("田" to listOf(0, 1), "田んぼ" to listOf(2, 3))),
-                                KanjiEntry("空", listOf("空" to listOf(0, 1), "空港" to listOf(2, 3))),
-                                KanjiEntry("海", listOf("海" to listOf(0, 1), "海岸" to listOf(2, 3))),
-                                KanjiEntry("風", listOf("風" to listOf(0, 1), "風邪" to listOf(2, 3))),
-                            ),
+                            entries = finalKanjiList!!,
                             onExampleClicked = { kanji, index -> }
                         )
                     }
@@ -218,14 +228,23 @@ fun MainPage(
     }
 
     Text(
-        text = "RAM: ${Formatter.formatShortFileSize(context, getAppMemoryUsage(context))}",
+        text = "RAM: ${Formatter.formatShortFileSize(context, getAppMemoryUsage())}",
         fontFamily = FontFamily.Monospace
     )
 }
 
+private fun updateFinalizedKanjiList(
+    loadingKanjiList: MutableMap<Char, MutableMap<String, MutableList<Int>>>
+): Map<Char, Map<String, List<Int>>> {
+    return loadingKanjiList.mapValues { (_, wordMap) ->
+        wordMap.mapValues { (_, list) -> list.toList() }
+    }
+}
+
 @Composable
-fun BackButton(onClick: () -> Unit) {
+fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
+        modifier = modifier,
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
     ) {
@@ -245,14 +264,10 @@ enum class SourceType {
     Manga, Website
 }
 
-enum class Tab {
-    Main, Details
-}
-
 @Preview(showSystemUi = true, showBackground = true, locale = "ja")
 @Composable
 private fun MainPreview() {
     KanjiHakkenTheme {
-        MainPage({})
+        MainPage {}
     }
 }

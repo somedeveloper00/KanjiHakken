@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">KanjiHakken</string>
+    <string name="manga">Manga</string>
+    <string name="website">website</string>
+    <string name="select_source_type">Select Source Type</string>
+    <string name="to_be_implemented_in_the_future">to be implemented in the future</string>
+    <string name="select_manga_text">Select a manga file (.cbz) to start analyzing.</string>
+    <string name="select_a_manga">Select a manga</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="extracting_images">Extracting images</string>
+    <string name="counting_total_images">counting total images</string>
+    <string name="extracting_text_from_images">extracting text from images</string>
+    <string name="occurrences">%1$s occurrences</string>
+    <string name="copy">copy</string>
+    <string name="copied_to_clipboard">"%1$s" copied to clipboard</string>
+</resources>

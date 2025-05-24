@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,7 +60,7 @@ fun LoadingDialog(
             text = stringResource(R.string.elapsed_time_s, elapsedTime),
             style = MaterialTheme.typography.bodyMedium
         )
-        CircularProgressIndicator()
+        CircularProgressIndicator(strokeCap = StrokeCap.Round)
         progresses.forEach {
             Text(
                 modifier = Modifier.height(30.dp),

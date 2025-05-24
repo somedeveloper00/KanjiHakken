@@ -47,9 +47,11 @@ fun SourceTypeSelector(
         )
         Button(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { onSourceTypeSelected(SourceType.Manga) }
+            onClick = { onSourceTypeSelected(SourceType.Manga) },
         ) {
-            Text(text = stringResource(R.string.manga))
+            Text(
+                text = stringResource(R.string.manga),
+            )
         }
         Button(
             modifier = Modifier.fillMaxWidth(),

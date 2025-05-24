@@ -1,6 +1,6 @@
 package com.somedeveloper.kanjihakken
 
-import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.text.format.Formatter
 import android.util.Log
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -48,6 +49,7 @@ import com.somedeveloper.kanjihakken.panes.MangaSelector
 import com.somedeveloper.kanjihakken.panes.SourceTypeSelector
 import com.somedeveloper.kanjihakken.ui.theme.KanjiHakkenTheme
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,22 +74,37 @@ fun MainPage(
     var scope = rememberCoroutineScope()
 
     var selectedSourceType by remember { mutableStateOf<SourceType?>(null) }
-    var images by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var texts by remember { mutableStateOf<List<String>>(emptyList()) }
     var loadingJob by remember { mutableStateOf<Job>(Job().apply { complete() }) }
     var loadingProgresses by remember { mutableStateOf<List<Pair<Float, String>>>(emptyList<Pair<Float, String>>()) }
     var loadingTitle by remember { mutableStateOf<String>("") }
     var pagerState = rememberPagerState(pageCount = { 2 })
     var kanjiList by remember { mutableStateOf<List<Pair<String, List<Pair<String, List<Int>>>>>>(emptyList<Pair<String, List<Pair<String, List<Int>>>>>()) }
+    var kanjiListState = rememberLazyListState()
+    var mangaListState = rememberLazyListState()
 
-    BackHandler {
-        if (selectedSourceType != null)
-            selectedSourceType = null
-        else
-            onKillRequested()
+    fun resetPage() {
+        kanjiList = emptyList()
+        imageUris = emptyList()
+        texts = emptyList()
+        selectedSourceType = null
+        loadingJob.cancel()
     }
 
-    AnimatedVisibility(!loadingJob.isActive && images.isEmpty() && selectedSourceType == null) {
+    BackHandler {
+        if (kanjiList.isNotEmpty()) {
+            resetPage()
+            return@BackHandler
+        }
+        if (selectedSourceType != null) {
+            resetPage()
+            return@BackHandler
+        }
+        onKillRequested()
+    }
+
+    AnimatedVisibility(!loadingJob.isActive && imageUris.isEmpty() && selectedSourceType == null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,7 +115,7 @@ fun MainPage(
         }
     }
 
-    AnimatedVisibility(!loadingJob.isActive && images.isEmpty() && selectedSourceType == SourceType.Manga) {
+    AnimatedVisibility(!loadingJob.isActive && imageUris.isEmpty() && selectedSourceType == SourceType.Manga) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,7 +133,7 @@ fun MainPage(
                             scope = scope,
                             onProgressReport = { loadingProgresses = it },
                             onFinished = { resultKanjiList, resultBitmaps, resultTexts ->
-                                images = resultBitmaps
+                                imageUris = resultBitmaps
                                 texts = resultTexts
                                 kanjiList = resultKanjiList
                             }
@@ -134,31 +151,17 @@ fun MainPage(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (images.isNotEmpty())
+        if (imageUris.isNotEmpty())
             BackButton(
                 modifier = Modifier.align(Alignment.Start),
-                onClick = {
-                    loadingJob.cancel()
-                    images = emptyList()
-                    texts = emptyList()
-                    kanjiList = emptyList()
-                    selectedSourceType = null
-                }
+                onClick = { resetPage() }
             )
         if (loadingJob.isActive) {
             LoadingDialog(
                 modifier = Modifier.fillMaxWidth(),
                 title = loadingTitle,
                 progresses = loadingProgresses,
-                onCancel = {
-                    loadingJob.cancel()
-                    images = emptyList()
-                    texts = emptyList()
-                    kanjiList = emptyList()
-                    selectedSourceType = null
-                    System.gc()
-                    Log.d("Kanji", "MainPage: cancelled job")
-                }
+                onCancel = { resetPage() }
             )
         }
 
@@ -169,9 +172,13 @@ fun MainPage(
                         KanjiList(
                             modifier = Modifier.padding(10.dp),
                             entries = kanjiList,
-                            onExampleClicked = { kanji, index ->
-                                {
-                                    Toast.makeText(context, "Opening page at $index for \"$kanji\"", Toast.LENGTH_SHORT).show()
+                            lazyListState = kanjiListState,
+                            onExampleClicked = { word, index ->
+                                Log.d("Kanji", "MainPage: here in main activity!")
+                                Toast.makeText(context, "Opening page at $index for \"$word\"", Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    pagerState.animateScrollToPage(1)
+                                    mangaListState.animateScrollToItem(index)
                                 }
                             }
                         )
@@ -179,8 +186,9 @@ fun MainPage(
                     if (it == 1) {
                         MangaDetails(
                             modifier = Modifier.padding(10.dp),
-                            images = images,
-                            texts = texts
+                            imageUris = imageUris,
+                            texts = texts,
+                            lazyListState = mangaListState
                         )
                     }
                 }

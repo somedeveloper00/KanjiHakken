@@ -6,10 +6,10 @@ plugins {
 android {
     signingConfigs {
         create("release") {
-            storePassword = "Tousse2333"
-            keyPassword = "Tousse2333"
             keyAlias = "mainKey"
             storeFile = file("C:\\Users\\userone\\AndroidStudioProjects\\KanjiHakken\\keystore.jks")
+            storePassword = "Tousse2333"
+            keyPassword = "Tousse2333"
         }
     }
     namespace = "com.somedeveloper.kanjihakken"
@@ -21,7 +21,6 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -55,15 +54,6 @@ android {
         }
     }
     buildToolsVersion = "35.0.0"
-
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false
-        }
-    }
 }
 
 dependencies {

@@ -2,10 +2,12 @@ package com.somedeveloper.kanjihakken.panes
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -50,23 +54,27 @@ import com.somedeveloper.kanjihakken.ui.theme.KanjiHakkenTheme
 fun KanjiList(
     modifier: Modifier = Modifier,
     entries: List<Pair<String, List<Pair<String, List<Int>>>>>,
+    lazyListState: LazyListState,
     onExampleClicked: (String, Int) -> Unit
 ) {
-    var expandedKanji by remember { mutableStateOf<String?>(null) }
-
+    var expandedKanji by remember { mutableStateOf<String>("") }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        state = lazyListState
     ) {
-        itemsIndexed(entries) { index, (kanji, examples) ->
+        itemsIndexed(entries, key = { _, item -> item.first }) { _, (kanji, examples) ->
             KanjiEntryView(
                 context = LocalContext.current,
                 kanji = kanji,
                 examples = examples,
-                isExpanded = expandedKanji != null && expandedKanji!! == kanji,
-                onExpandChanged = { expandedKanji = if (it) kanji else null },
-                onExampleClicked = onExampleClicked
+                isExpanded = expandedKanji == kanji,
+                onExpandChanged = { expandedKanji = if (it) kanji else "" },
+                onExampleButtonClicked = { word, index ->
+                    Log.d("Kanji", "KanjiList: $word and $index")
+                    onExampleClicked(word, index)
+                }
             )
         }
     }
@@ -79,15 +87,15 @@ private fun KanjiEntryView(
     examples: List<Pair<String, List<Int>>>,
     isExpanded: Boolean,
     onExpandChanged: (Boolean) -> Unit,
-    onExampleClicked: (String, Int) -> Unit
+    onExampleButtonClicked: (String, Int) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(10.dp, shape = MaterialTheme.shapes.medium),
+            .shadow(10.dp, shape = MaterialTheme.shapes.medium)
+            .clickable { onExpandChanged(!isExpanded) },
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer),
-        onClick = { onExpandChanged(!isExpanded) }
     ) {
         Column(
             modifier = Modifier
@@ -175,12 +183,20 @@ private fun KanjiEntryView(
                         )
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.End),
                             itemVerticalAlignment = Alignment.Top,
                         ) {
                             references.forEach({
                                 Button(
-                                    onClick = { onExampleClicked(word, it) }
+                                    onClick = {
+                                        Log.d("Kanji", "KanjiEntryView: clicked")
+                                        onExampleButtonClicked(word, it)
+                                    },
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 ) {
                                     Text(
                                         text = it.toString()
@@ -199,13 +215,15 @@ private fun KanjiEntryView(
 @Preview(showBackground = true, showSystemUi = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 private fun PreviewKanjiListDark() {
+    val state = rememberLazyListState()
+    val context = LocalContext.current
     KanjiHakkenTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             KanjiList(
                 modifier = Modifier.padding(20.dp),
                 entries = listOf(
                     "金" to listOf(
-                        "金曜日" to listOf(1, 2, 3, 5, 18),
+                        "金曜日" to listOf(1, 2, 3, 5, 18, 18, 19, 19, 20),
                         "お金" to listOf(4, 5)
                     ),
                     "月" to listOf(
@@ -229,7 +247,10 @@ private fun PreviewKanjiListDark() {
                         "得意" to listOf(17)
                     ),
                 ),
-                onExampleClicked = { kanji, index -> println("Clicked on $kanji at index $index") }
+                state,
+                onExampleClicked = { kanji, index ->
+                    Toast.makeText(context, "Opening page at $index for \"$kanji\"", Toast.LENGTH_SHORT).show()
+                }
             )
         }
     }

@@ -8,12 +8,18 @@
     <string name="select_a_manga">Select a manga</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
-    <string name="extracting_images">Extracting images</string>
     <string name="counting_total_images">counting total images</string>
-    <string name="extracting_text_from_images">extracting text from images</string>
     <string name="occurrences">%1$s occurrences</string>
     <string name="copy">copy</string>
     <string name="copied_to_clipboard">"%1$s" copied to clipboard</string>
     <string name="tokenizing_texts">tokenizing texts</string>
     <string name="creating_kanji_list">creating kanji list</string>
+    <string name="processing_manga">Processing Manga</string>
+    <string name="extracting_images">Extracting images (%1$s)</string>
+    <string name="extracting_text_from_images">Extracting text from images: %1$s</string>
+    <string name="extracted_images">Extracted images</string>
+    <string name="extracted_texts">Extracted texts</string>
+    <string name="extracted_words">Extracted words</string>
+    <string name="created_kanji_list">Created Kanji list</string>
+    <string name="elapsed_time_s">Elapsed Time: %1$ss</string>
 </resources>

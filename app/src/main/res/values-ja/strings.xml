@@ -10,11 +10,17 @@
     <string name="cancel">キャンセル</string>
     <string name="back">戻る</string>
     <string name="counting_total_images">画像の総数を数える中</string>
-    <string name="extracting_images">画像を抽出中</string>
-    <string name="extracting_text_from_images">画像からテキストを抽出中</string>
     <string name="tokenizing_texts">テキストのトークナイズ中</string>
     <string name="creating_kanji_list">漢字リストを作成中</string>
     <string name="occurrences">%1$s 件の出現</string>
     <string name="copy">コピー</string>
     <string name="copied_to_clipboard">「%1$s」 をクリップボードにコピーしました</string>
+    <string name="processing_manga">漫画をプロセス中</string>
+    <string name="extracting_images">Extracting images (%1$s)</string>
+    <string name="extracting_text_from_images">Extracting text from images: %1$s</string>
+    <string name="extracted_images">Extracted images</string>
+    <string name="extracted_texts">Extracted texts</string>
+    <string name="extracted_words">Extracted words</string>
+    <string name="created_kanji_list">Created Kanji list</string>
+    <string name="elapsed_time_s">Elapsed Time: %1$ss</string>
 </resources>

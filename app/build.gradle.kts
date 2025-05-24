@@ -4,13 +4,21 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            storePassword = "Tousse2333"
+            keyPassword = "Tousse2333"
+            keyAlias = "mainKey"
+            storeFile = file("C:\\Users\\userone\\AndroidStudioProjects\\KanjiHakken\\keystore.jks")
+        }
+    }
     namespace = "com.somedeveloper.kanjihakken"
     compileSdk = 35
 
     defaultConfig {
         applicationId = "com.somedeveloper.kanjihakken"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -18,15 +26,14 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        proguardFiles()
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -45,6 +52,16 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,CONTRIBUTORS.md,LICENSE.md}"
+        }
+    }
+    buildToolsVersion = "35.0.0"
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
+            isUniversalApk = false
         }
     }
 }

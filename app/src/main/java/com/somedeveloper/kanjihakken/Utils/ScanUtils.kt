@@ -37,15 +37,11 @@ fun extractKanjiListFromCbzUriJob(
         // image extraction
         var progress0 = 0f to context.getString(R.string.counting_total_images)
         onProgressReport(listOf(progress0))
-        val bitmaps = extractImagesFromCbzUri(
-            context = context,
-            cbzUri = uri,
-            onProgress = { progress ->
-                progress0 = lerp(0.1f, 1f, progress) to context.getString(R.string.extracting_images, formatAsLocalizedPercentage(progress))
-                onProgressReport(listOf(progress0))
-                ensureActive()
-            }
-        )
+        val bitmaps = extractImagesFromCbzUri(context, uri) { progress ->
+            progress0 = lerp(0.1f, 1f, progress) to context.getString(R.string.extracting_images, formatAsLocalizedPercentage(progress))
+            onProgressReport(listOf(progress0))
+            ensureActive()
+        }
         progress0 = 1f to context.getString(R.string.extracted_images)
 
         // text extraction
@@ -56,12 +52,7 @@ fun extractKanjiListFromCbzUriJob(
         val recognizer = TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
         ensureActive()
         for (bitmap in bitmaps) {
-            texts.add(
-                extractTextFromBitmap(
-                    recognizer = recognizer,
-                    bitmap = bitmap
-                )
-            )
+            texts.add(extractTextFromBitmap(recognizer, bitmap))
             progress1 = texts.size / bitmaps.size.toFloat() to context.getString(R.string.extracting_text_from_images, formatAsLocalizedPercentage(texts.size / bitmaps.size.toFloat()))
             onProgressReport(listOf(progress0, progress1))
             ensureActive()
@@ -73,36 +64,36 @@ fun extractKanjiListFromCbzUriJob(
         var progress2 = 0f to context.getString(R.string.tokenizing_texts)
         onProgressReport(listOf(progress0, progress1, progress2))
         val tokenizer = Tokenizer.Builder().build()
-        val tokensMap = mutableListOf<List<String>>()
         ensureActive()
-        texts.forEachIndexed { index, text ->
-            tokensMap.add(extractTokens(tokenizer, text))
+        val tokensMap = texts.mapIndexed { index, text ->
+            val tokens = extractTokens(tokenizer, text)
             progress2 = progress2.copy(first = index.toFloat() / texts.size)
             onProgressReport(listOf(progress0, progress1, progress2))
             ensureActive()
+            tokens
         }
         progress2 = 1f to context.getString(R.string.extracted_words)
 
         // create kanji list
         Log.d("Kanji", "extractKanjiListFromCbzUriJob: kanji list processing")
         var progress3 = 0f to context.getString(R.string.creating_kanji_list)
-        val result = createKanjiList(tokensMap, {
+        val result = createKanjiList(tokensMap) {
             progress3 = progress3.copy(first = it)
             ensureActive()
-        })
+        }
         progress3 = 1f to context.getString(R.string.created_kanji_list)
         onProgressReport(listOf(progress0, progress1, progress2, progress3))
 
         // prepare results
         val resultList = result.map { (kanji, occurrences) ->
-            Pair(kanji, occurrences.map { (word, indices) -> Pair(word, indices) }.sortedBy { -it.second.size })
-        }.sortedBy { -it.second.sumOf { it.second.size } }
+            Pair(kanji, occurrences.map { (word, indices) -> Pair(word, indices) }.sortedByDescending { it.second.size })
+        }.sortedByDescending { it.second.sumOf { it.second.size } }
         onFinished(resultList, bitmaps, texts)
     }
 }
 
 private fun createKanjiList(
-    texts: MutableList<List<String>>,
+    texts: List<List<String>>,
     onProgressReport: (Float) -> Unit
 ): Map<String, Map<String, List<Int>>> {
     val result: MutableMap<String, MutableMap<String, MutableList<Int>>> = mutableMapOf()

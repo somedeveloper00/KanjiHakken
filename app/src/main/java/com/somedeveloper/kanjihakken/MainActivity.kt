@@ -141,6 +141,7 @@ fun MainPage(
                     loadingJob.cancel()
                     images = emptyList()
                     texts = emptyList()
+                    kanjiList = emptyList()
                     selectedSourceType = null
                 }
             )
@@ -154,6 +155,7 @@ fun MainPage(
                     images = emptyList()
                     texts = emptyList()
                     kanjiList = emptyList()
+                    selectedSourceType = null
                     System.gc()
                     Log.d("Kanji", "MainPage: cancelled job")
                 }

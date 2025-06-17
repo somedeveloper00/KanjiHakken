@@ -1,26 +1,25 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">漢字発見</string>
-    <string name="manga">漫画</string>
-    <string name="website">ウェッブサイト</string>
+    <string name="manga">マンガ</string>
+    <string name="website">ウェブサイト</string>
     <string name="select_source_type">ソースタイプを選択</string>
     <string name="to_be_implemented_in_the_future">将来的に実装予定</string>
-    <string name="select_manga_text">分析を始めるには、漫画ファイル（.cbz）を選択しなさい。</string>
-    <string name="select_a_manga">漫画を選択</string>
+    <string name="select_manga_text">マンガファイル（.cbz）を選択して解析を開始してください。</string>
+    <string name="select_a_manga">マンガを選択</string>
     <string name="cancel">キャンセル</string>
     <string name="back">戻る</string>
-    <string name="counting_total_images">画像の総数を数える中</string>
-    <string name="tokenizing_texts">テキストのトークナイズ中</string>
-    <string name="creating_kanji_list">漢字リストを作成中</string>
-    <string name="occurrences">%1$s 件の出現</string>
+    <string name="counting_total_images">総画像数をカウント中</string>
+    <string name="occurrences">%1$s 回出現</string>
     <string name="copy">コピー</string>
-    <string name="copied_to_clipboard">「%1$s」 をクリップボードにコピーしました</string>
-    <string name="processing_manga">漫画をプロセス中</string>
-    <string name="extracting_images">Extracting images (%1$s)</string>
-    <string name="extracting_text_from_images">Extracting text from images: %1$s</string>
-    <string name="extracted_images">Extracted images</string>
-    <string name="extracted_texts">Extracted texts</string>
-    <string name="extracted_words">Extracted words</string>
-    <string name="created_kanji_list">Created Kanji list</string>
-    <string name="elapsed_time_s">Elapsed Time: %1$ss</string>
+    <string name="copied_to_clipboard">"%1$s" をクリップボードにコピーしました</string>
+    <string name="tokenizing_texts">テキストをトークン化中</string>
+    <string name="creating_kanji_list">漢字リストを作成中</string>
+    <string name="processing_manga">マンガを処理中</string>
+    <string name="extracting_images">画像を抽出中 (%1$s)</string>
+    <string name="extracting_text_from_images">画像からテキストを抽出中: %1$s</string>
+    <string name="extracted_images">抽出された画像</string>
+    <string name="extracted_texts">抽出されたテキスト</string>
+    <string name="extracted_words">抽出された単語</string>
+    <string name="created_kanji_list">作成された漢字リスト</string>
+    <string name="elapsed_time_s">経過時間: %1$s秒</string>
 </resources>

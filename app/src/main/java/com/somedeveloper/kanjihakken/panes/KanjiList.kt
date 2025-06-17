@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -92,7 +91,6 @@ private fun KanjiEntryView(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(10.dp, shape = MaterialTheme.shapes.medium)
             .clickable { onExpandChanged(!isExpanded) },
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer),

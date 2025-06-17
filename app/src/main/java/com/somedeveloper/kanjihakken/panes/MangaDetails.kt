@@ -71,8 +71,7 @@ private fun PageResult(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .shadow(10.dp, shape = MaterialTheme.shapes.small),
+            .fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSecondaryContainer),
         onClick = { showText = !showText }

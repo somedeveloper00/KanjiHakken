@@ -55,6 +55,7 @@ fun SourceTypeSelector(
         }
         Button(
             modifier = Modifier.fillMaxWidth(),
+            enabled = false,
             onClick = { onSourceTypeSelected(SourceType.Website) }
         ) {
             Text(text = stringResource(R.string.website))
@@ -126,11 +127,11 @@ private fun MangaSelectorPreview() {
     showSystemUi = true,
     showBackground = true,
     locale = "ja",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+//    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 private fun SourceSelectorDialogDark() {
-    var selectedSourceType by remember { mutableStateOf<SourceType?>(SourceType.Manga) }
+    var selectedSourceType by remember { mutableStateOf<SourceType?>(null) }
     KanjiHakkenTheme {
         Box(
             modifier = Modifier

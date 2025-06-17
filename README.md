@@ -1,0 +1,10 @@
+## 漢字発見アプリ (Androidだけ)
+
+![image](https://github.com/user-attachments/assets/11892fa6-3e6f-4585-b0a2-15b6c6b998b6)
+![image](https://github.com/user-attachments/assets/ea68ac5c-e068-46e7-851f-bfcd00422566)
+![image](https://github.com/user-attachments/assets/a0f874ee-e146-42f4-9d4c-c04b98f8618c)
+![image](https://github.com/user-attachments/assets/7801ef0c-b006-497c-aa57-26a620208c13)
+![image](https://github.com/user-attachments/assets/be50d2bc-4cd3-4d54-b5e9-3f63f0a4e26c)
+![image](https://github.com/user-attachments/assets/eb3d442c-3bef-4220-936c-97b56f4def0f)
+![image](https://github.com/user-attachments/assets/fac24908-de91-4426-9665-1b9f91cad2f7)
+![image](https://github.com/user-attachments/assets/611eb333-77e4-4dfc-8e9a-5dc585f5599c)

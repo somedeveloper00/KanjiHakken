@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="supadataApiKey" translatable="false">sd_0c95d126a9f177fddcecee275a721f44</string>
+    <string name="supadataCaptionGetUrlFormat" translatable="false"><![CDATA[https://api.supadata.ai/v1/youtube/transcript?url=%1$s&text=true&lang=ja]]></string>
+</resources>

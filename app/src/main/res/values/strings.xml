@@ -1,10 +1,9 @@
 <resources>
     <string name="app_name">KanjiHakken</string>
-    <string name="manga">Manga</string>
-    <string name="website">website</string>
-    <string name="select_source_type">Select Source Type</string>
     <string name="to_be_implemented_in_the_future">to be implemented in the future</string>
     <string name="select_manga_text">Select a manga file (.cbz) to start analyzing.</string>
+    <string name="select_website_text">Enter a website URL to start analyzing.</string>
+    <string name="select_youtube_text">Select a YouTube video URL to start analyzing.</string>
     <string name="select_a_manga">Select a manga</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
@@ -22,4 +21,6 @@
     <string name="extracted_words">Extracted words</string>
     <string name="created_kanji_list">Created Kanji list</string>
     <string name="elapsed_time_s">Elapsed Time: %1$ss</string>
+    <string name="please_follow_one_of_the_cards">Please Follow one of the cards</string>
+    <string name="downloading">Downloading</string>
 </resources>

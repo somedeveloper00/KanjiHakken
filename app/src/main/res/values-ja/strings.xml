@@ -1,10 +1,9 @@
 <resources>
     <string name="app_name">漢字発見</string>
-    <string name="manga">マンガ</string>
-    <string name="website">ウェブサイト</string>
-    <string name="select_source_type">ソースタイプを選択</string>
     <string name="to_be_implemented_in_the_future">将来的に実装予定</string>
     <string name="select_manga_text">マンガファイル（.cbz）を選択して解析を開始してください。</string>
+    <string name="select_website_text">ウェブサイトのURLを入力して解析を開始してください。</string>
+    <string name="select_youtube_text">YouTube動画のURLを選択して解析を開始してください。</string>
     <string name="select_a_manga">マンガを選択</string>
     <string name="cancel">キャンセル</string>
     <string name="back">戻る</string>
@@ -22,4 +21,6 @@
     <string name="extracted_words">抽出された単語</string>
     <string name="created_kanji_list">作成された漢字リスト</string>
     <string name="elapsed_time_s">経過時間: %1$s秒</string>
+    <string name="please_follow_one_of_the_cards">カードのいずれかを選択してください。</string>
+    <string name="downloading">読み込み中</string>
 </resources>

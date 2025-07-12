@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.ui.util.lerp
 import androidx.core.content.FileProvider
 import com.atilika.kuromoji.ipadic.Tokenizer
@@ -22,9 +23,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.BufferedInputStream
 import java.io.File
+import java.lang.Exception
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
@@ -51,22 +56,31 @@ fun extractKanjiListFromCbzUriJob(
     // data for text extraction
     var progress1Atomic = AtomicReference(0f to context.getString(R.string.extracting_text_from_images, formatAsLocalizedPercentage(0f)))
     val recognizer = TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
-    val ocrDispatcher = Dispatchers.Default.limitedParallelism(8)
     var ocrCount = AtomicInteger(0)
     var ocrJobs = mutableListOf<Deferred<String>>()
     var texts = AtomicReference(listOf<String>())
 
     // image extraction
     val imageUris = mutableListOf<Uri>()
+    if (!isActive)
+        recognizer.close()
+    ensureActive()
     onProgressReport(listOf(progress0, progress1Atomic.get()))
     extractImagesFromCbzUri(context, uri) { bitmap, totalCount ->
+        progress0 = lerp(0.1f, 1f, imageUris.size / totalCount.toFloat()) to context.getString(R.string.extracting_images, formatAsLocalizedPercentage(imageUris.size / totalCount.toFloat()))
+        if (!isActive)
+            recognizer.close()
+        ensureActive()
+        onProgressReport(listOf(progress0, progress1Atomic.get()))
 
         // text extraction (async)
-        ocrJobs.add(async(ocrDispatcher) {
+        ocrJobs.add(async() {
             val text = extractTextFromBitmap(recognizer, bitmap)
             texts.set(texts.get() + text)
             ocrCount.set(ocrCount.get() + 1)
             progress1Atomic.set((ocrCount.get() + 1) / totalCount.toFloat() to context.getString(R.string.extracting_text_from_images, formatAsLocalizedPercentage((ocrCount.get() + 1) / totalCount.toFloat())))
+            if (!isActive)
+                recognizer.close()
             onProgressReport(listOf(progress0, progress1Atomic.get()))
             text
         })
@@ -75,8 +89,6 @@ fun extractKanjiListFromCbzUriJob(
         val imageFile = File(cacheDir, "${imageUris.size}.jpg")
         imageUris.add(FileProvider.getUriForFile(context, "com.somedeveloper.kanjihakken.fileprovider", imageFile))
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, imageFile.outputStream())
-        progress0 = lerp(0.1f, 1f, imageUris.size / totalCount.toFloat()) to context.getString(R.string.extracting_images, formatAsLocalizedPercentage(imageUris.size / totalCount.toFloat()))
-        onProgressReport(listOf(progress0, progress1Atomic.get()))
     }
     progress0 = 1f to context.getString(R.string.extracted_images)
 
@@ -86,35 +98,154 @@ fun extractKanjiListFromCbzUriJob(
     progress1Atomic.set(1f to context.getString(R.string.extracted_texts))
 
     // extract words
-    Log.d("Kanji", "extractKanjiListFromCbzUriJob: word extraction")
-    var progress2 = 0f to context.getString(R.string.tokenizing_texts)
-    onProgressReport(listOf(progress0, progress1Atomic.get(), progress2))
     val tokenizer = Tokenizer.Builder().build()
-    ensureActive()
-    val tokensMap = texts.get().mapIndexed { index, text ->
-        val tokens = extractTokens(tokenizer, text)
-        progress2 = progress2.copy(first = index.toFloat() / texts.get().size)
-        onProgressReport(listOf(progress0, progress1Atomic.get(), progress2))
-        ensureActive()
-        tokens
-    }
-    progress2 = 1f to context.getString(R.string.extracted_words)
+    val tokensMap = texts.get().mapIndexed { index, text -> extractTokens(tokenizer, text) }
 
     // create kanji list
-    Log.d("Kanji", "extractKanjiListFromCbzUriJob: kanji list processing")
-    var progress3 = 0f to context.getString(R.string.creating_kanji_list)
-    val result = createKanjiList(tokensMap) {
-        progress3 = progress3.copy(first = it)
-        ensureActive()
-    }
-    progress3 = 1f to context.getString(R.string.created_kanji_list)
-    onProgressReport(listOf(progress0, progress1Atomic.get(), progress2, progress3))
+    val result = createKanjiList(tokensMap) {}
 
     // prepare results
     val resultList = result.map { (kanji, occurrences) ->
         Pair(kanji, occurrences.map { (word, indices) -> Pair(word, indices) }.sortedByDescending { it.second.size })
     }.sortedByDescending { it.second.sumOf { it.second.size } }
     onFinished(resultList, imageUris, texts.get())
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+fun extractKanjiListFromWebsiteUriJob(
+    context: Context,
+    scope: CoroutineScope,
+    url: URL,
+    onProgressReport: (List<Pair<Float, String>>) -> Unit,
+    onFinished: (List<Pair<String, List<Pair<String, List<Int>>>>>) -> Unit
+): Job = scope.launch(Dispatchers.Default) {
+
+    var text = ""
+
+    // download text by GET
+    var progress0 = 0f to context.getString(R.string.downloading)
+    with(url.openConnection() as HttpURLConnection) {
+        ensureActive()
+        onProgressReport(listOf(progress0))
+        // send
+        requestMethod = "GET"
+        connectTimeout = 10000
+        readTimeout = 10000
+        connect()
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            Toast.makeText(context, "Failed to read website. HTTP status code: ${responseCode}", Toast.LENGTH_SHORT).show()
+            onFinished(emptyList())
+        }
+        ensureActive()
+        progress0 = 0.1f to context.getString(R.string.downloading)
+        onProgressReport(listOf(progress0))
+        // read
+        val reader = inputStream.bufferedReader()
+        val length = contentLength
+        var progress = 0f
+        val sb = StringBuilder()
+        while (true) {
+            val line = reader.readLine() ?: break
+            sb.append(line)
+            progress += line.length
+            ensureActive()
+            progress0 = lerp(0.1f, 1f, progress / length) to context.getString(R.string.downloading)
+            onProgressReport(listOf(progress0))
+        }
+        text = sb.toString()
+    }
+    progress0 = 1f to context.getString(R.string.downloading)
+    ensureActive()
+    onProgressReport(listOf(1f to context.getString(R.string.downloading)))
+
+    // extract tokens
+    val tokenizer = Tokenizer.Builder().build()
+    val tokens = extractTokens(tokenizer, text)
+
+    // create kanji list
+    Log.d("Kanji", "extractKanjiListFromCbzUriJob: kanji list processing")
+    val result = createKanjiList(listOf(tokens)) {}
+
+    // prepare results
+    val resultList = result.map { (kanji, occurrences) ->
+        Pair(kanji, occurrences.map { (word, indices) -> Pair(word, indices) }.sortedByDescending { it.second.size })
+    }.sortedByDescending { it.second.sumOf { it.second.size } }
+    onFinished(resultList)
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+fun extractKanjiListFromYouTubeUrlJob(
+    context: Context,
+    scope: CoroutineScope,
+    url: String,
+    onProgressReport: (List<Pair<Float, String>>) -> Unit,
+    onFinished: (List<Pair<String, List<Pair<String, List<Int>>>>>) -> Unit
+): Job = scope.launch(Dispatchers.IO) {
+
+    var text = ""
+
+    // download subtitle by GET
+    var progress0 = 0f to context.getString(R.string.downloading)
+
+    val fullUrl = context.getString(R.string.supadataCaptionGetUrlFormat, url)
+    Log.d("Kanji", "extractKanjiListFromYouTubeUrlJob: ${fullUrl}")
+    with(URL(fullUrl).openConnection() as HttpURLConnection) {
+        ensureActive()
+        onProgressReport(listOf(progress0))
+        // send
+        requestMethod = "GET"
+        connectTimeout = 10000
+        readTimeout = 10000
+        setRequestProperty("x-api-key", context.getString(R.string.supadataApiKey))
+        Log.d("Kanji", "extractKanjiListFromYouTubeUrlJob: ${context.getString(R.string.supadataApiKey)}")
+        connect()
+        try {
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                Toast.makeText(context, "Failed to read website. HTTP status code: ${responseCode}", Toast.LENGTH_SHORT).show()
+                onFinished(emptyList())
+                return@launch
+            }
+        } catch (ex: Exception) {
+            Log.d("Kanji", "extractKanjiListFromYouTubeUrlJob: ${ex.toString()}")
+            Toast.makeText(context, ex.toString(), Toast.LENGTH_LONG).show()
+            onFinished(emptyList())
+            return@launch
+        }
+        ensureActive()
+        progress0 = 0.1f to context.getString(R.string.downloading)
+        onProgressReport(listOf(progress0))
+        // read
+        val reader = inputStream.bufferedReader()
+        val length = contentLength
+        var progress = 0f
+        val sb = StringBuilder()
+        while (true) {
+            val line = reader.readLine() ?: break
+            sb.append(line)
+            progress += line.length
+            ensureActive()
+            progress0 = lerp(0.1f, 1f, progress / length) to context.getString(R.string.downloading)
+            onProgressReport(listOf(progress0))
+        }
+        text = sb.toString()
+    }
+    progress0 = 1f to context.getString(R.string.downloading)
+    ensureActive()
+    onProgressReport(listOf(1f to context.getString(R.string.downloading)))
+
+    // extract tokens
+    val tokenizer = Tokenizer.Builder().build()
+    val tokens = extractTokens(tokenizer, text)
+
+    // create kanji list
+    Log.d("Kanji", "extractKanjiListFromCbzUriJob: kanji list processing")
+    val result = createKanjiList(listOf(tokens)) {}
+
+    // prepare results
+    val resultList = result.map { (kanji, occurrences) ->
+        Pair(kanji, occurrences.map { (word, indices) -> Pair(word, indices) }.sortedByDescending { it.second.size })
+    }.sortedByDescending { it.second.sumOf { it.second.size } }
+    onFinished(resultList)
 }
 
 private fun createKanjiList(
